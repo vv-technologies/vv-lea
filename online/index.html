@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEA Workspace · VV Hybrid Universe</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f172a'/><text x='16' y='22' text-anchor='middle' font-family='system-ui' font-size='14' font-weight='700' fill='%23C9A84C'>L</text></svg>">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --gold: #C9A84C;
+  --gold-dim: rgba(201,168,76,0.15);
+  --gold-border: rgba(201,168,76,0.25);
+  --dark: #0f172a;
+  --dark2: #1e293b;
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: rgba(255,255,255,0.07);
+  --text: rgba(255,255,255,0.85);
+  --text-dim: rgba(255,255,255,0.4);
+  --green: #10b981;
+  --red: #ef4444;
+  --amber: #f59e0b;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--dark);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(201,168,76,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 80% 90%, rgba(59,130,246,0.05) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(15,23,42,0.8);
+  backdrop-filter: blur(20px);
+  flex-shrink: 0;
+}
+
+.logo-area { display: flex; align-items: center; gap: 14px; }
+.logo-mark {
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 6px;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(201,168,76,0.4);
+}
+.logo-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.server-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  transition: all 0.2s;
+}
+.server-status:hover { border-color: var(--gold-border); }
+
+.mode-badge {
+  font-size: 9px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.mode-badge.local { color: var(--green); border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+.mode-badge.online { color: var(--amber); border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+.mode-badge.detecting { color: var(--text-dim); border: 1px solid var(--glass-border); background: var(--glass); }
+
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+  transition: all 0.3s;
+}
+.dot.active { background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
+.dot.pending { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.badge-vv {
+  font-size: 9px;
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 1px;
+  background: var(--gold-dim);
+}
+
+/* ── TABS ── */
+.tabs-bar {
+  display: flex;
+  gap: 2px;
+  padding: 10px 28px 0;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(15,23,42,0.6);
+  flex-shrink: 0;
+}
+.tab {
+  padding: 8px 22px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+  border-radius: 4px 4px 0 0;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── CONTENT ── */
+.content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.view { display: none; flex: 1; flex-direction: column; padding: 24px 28px; gap: 16px; overflow: hidden; }
+.view.active { display: flex; }
+
+/* ── PANELS ── */
+.panel {
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.panel.grow { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.panel-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+/* ── COMMAND INPUT ── */
+.cmd-input {
+  width: 100%;
+  flex: 1;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 16px;
+  color: var(--text);
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 160px;
+}
+.cmd-input:focus { border-color: var(--gold-border); }
+.cmd-input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── ACTION BAR ── */
+.action-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+}
+.btn-execute {
+  background: linear-gradient(135deg, rgba(201,168,76,0.85), rgba(160,130,50,0.85));
+  color: #0a0a0a;
+  box-shadow: 0 3px 14px rgba(201,168,76,0.2);
+}
+.btn-execute:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(201,168,76,0.35); }
+.btn-execute:active { transform: translateY(0); }
+.btn-execute:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-clear {
+  background: var(--glass);
+  color: var(--text-dim);
+  border: 1px solid var(--glass-border);
+}
+.btn-clear:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+.btn-panel {
+  background: rgba(59,130,246,0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(59,130,246,0.2);
+}
+.btn-panel:hover { background: rgba(59,130,246,0.18); }
+
+.exec-status {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── OUTPUT / PREVIEW ── */
+.output-box {
+  flex: 1;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 18px;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-y: auto;
+  color: rgba(255,255,255,0.75);
+}
+.output-box::-webkit-scrollbar { width: 4px; }
+.output-box::-webkit-scrollbar-track { background: transparent; }
+.output-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  gap: 10px;
+}
+.empty-icon { font-size: 40px; opacity: 0.3; }
+.empty-text { font-size: 13px; }
+.empty-sub { font-size: 11px; opacity: 0.6; }
+
+.log-line { margin: 3px 0; }
+.log-ok { color: var(--green); }
+.log-err { color: var(--red); }
+.log-info { color: #60a5fa; }
+.log-warn { color: var(--amber); }
+.log-dim { color: var(--text-dim); }
+
+/* ── STATUS BAR ── */
+.statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 28px;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(10,16,30,0.9);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.sb-group { display: flex; align-items: center; gap: 18px; }
+.sb-item { display: flex; align-items: center; gap: 5px; }
+.sb-dot { width: 5px; height: 5px; border-radius: 50%; }
+.sb-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.sb-dot.gold { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+/* ── ONLINE NOTICE BANNER ── */
+.online-notice {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 28px;
+  background: rgba(245,158,11,0.07);
+  border-bottom: 1px solid rgba(245,158,11,0.15);
+  font-size: 11px;
+  color: rgba(245,158,11,0.8);
+  flex-shrink: 0;
+}
+.online-notice.visible { display: flex; }
+.notice-link { color: var(--gold); text-decoration: underline; cursor: pointer; }
+
+/* ── ASK LEA MODAL ── */
+.btn-ask-lea {
+  background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.06));
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  font-size: 11px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.btn-ask-lea:hover { background: rgba(201,168,76,0.22); box-shadow: 0 0 18px rgba(201,168,76,0.15); }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.open { display: flex; }
+.modal-overlay.visible { opacity: 1; }
+
+.modal {
+  background: #1a2540;
+  border: 1px solid var(--gold-border);
+  border-radius: 18px;
+  width: min(540px, 92vw);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 80px rgba(201,168,76,0.08), 0 24px 64px rgba(0,0,0,0.6);
+  overflow: hidden;
+  max-height: 82vh;
+  transform: translateY(12px);
+  transition: transform 0.25s ease;
+}
+.modal-overlay.visible .modal { transform: translateY(0); }
+
+.typing-indicator { display: none; align-items: center; gap: 5px; padding: 4px 0; }
+.typing-indicator.active { display: flex; }
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--gold);
+  opacity: 0.4; animation: typingPulse 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingPulse { 0%,60%,100%{opacity:0.2;transform:scale(1)} 30%{opacity:1;transform:scale(1.3)} }
+
+.ask-history { display: flex; flex-wrap: wrap; gap: 6px; }
+.history-chip {
+  font-size: 10px; color: var(--text-dim); background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border); border-radius: 12px; padding: 3px 10px;
+  cursor: pointer; transition: all 0.15s; max-width: 200px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.history-chip:hover { color: var(--gold); border-color: var(--gold-border); }
+
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.modal-title { color: var(--gold); font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.modal-close {
+  background: none; border: none; color: var(--text-dim);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  padding: 2px 8px; border-radius: 6px; font-family: inherit;
+}
+.modal-close:hover { color: var(--text); background: var(--glass); }
+
+.modal-body { padding: 20px 24px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+
+.ask-input {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  resize: none;
+  width: 100%;
+  min-height: 76px;
+  transition: border-color 0.2s;
+}
+.ask-input:focus { border-color: var(--gold-border); }
+.ask-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.ask-actions { display: flex; gap: 8px; align-items: center; }
+.ask-model-status { margin-left: auto; font-size: 10px; color: var(--text-dim); letter-spacing: 0.3px; }
+
+.ask-response {
+  min-height: 120px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ask-hint { font-size: 10px; color: var(--text-dim); letter-spacing: 0.3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-area">
+      <div>
+        <div class="logo-mark">LEA</div>
+        <div class="logo-sub">Workspace</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="server-status" onclick="reconnect()" title="Click pentru reconectare">
+        <div class="dot" id="serverDot"></div>
+        <span id="serverText">Detectare mod...</span>
+      </div>
+      <button class="btn-ask-lea" onclick="openAskLea()">✦ Ask Lea</button>
+      <div class="mode-badge detecting" id="modeBadge">DETECTING</div>
+      <div class="badge-vv">VV HYBRID</div>
+    </div>
+  </div>
+
+  <!-- ONLINE NOTICE (shown only when in online mode) -->
+  <div class="online-notice" id="onlineNotice">
+    ◈ Mod online — execute necesită LEA local activ ·
+    <span class="notice-link" onclick="showSetupInfo()">Cum îl pornesc?</span>
+    · Ask Lea funcționează cu context din localStorage
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs-bar">
+    <button class="tab active" onclick="switchTab('command', this)">Command</button>
+    <button class="tab" onclick="switchTab('preview', this)">Preview</button>
+    <button class="tab" onclick="switchTab('logs', this)">Logs</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- TAB: COMMAND -->
+    <div class="view active" id="view-command">
+      <div class="panel grow">
+        <div class="panel-label">Script Input</div>
+        <textarea class="cmd-input" id="cmdInput" placeholder="Paste LEA command here...
+
+### LEA_EXECUTE ###
+COMENZI = [
+    {'type': 'CREATE_FILE', 'path': 'C:\\LEA_CORE\\data\\test.txt', 'content': 'Hello LEA!'}
+]"></textarea>
+        <div class="action-bar" style="margin-top:12px">
+          <button class="btn btn-execute" id="btnExecute" onclick="executeCommand()">Execute</button>
+          <button class="btn btn-clear" onclick="clearInput()">Clear</button>
+          <button class="btn btn-panel" id="btnPanel" onclick="openControlPanel()">Control Panel</button>
+          <div class="exec-status" id="execStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: PREVIEW -->
+    <div class="view" id="view-preview">
+      <div class="panel grow">
+        <div class="panel-label">Execution Preview</div>
+        <div class="output-box" id="previewBox">
+          <div class="empty-state">
+            <div class="empty-icon">◈</div>
+            <div class="empty-text">No preview yet</div>
+            <div class="empty-sub">Execute a command to see results here</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: LOGS -->
+    <div class="view" id="view-logs">
+      <div class="panel grow">
+        <div class="panel-label">Session Logs</div>
+        <div class="output-box" id="logsBox">
+          <div class="log-line log-dim">— LEA Workspace initialized —</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <div class="sb-group">
+      <div class="sb-item">
+        <div class="sb-dot green"></div>
+        <span>Engine Active</span>
+      </div>
+      <div class="sb-item">
+        <div class="sb-dot gold"></div>
+        <span>LEA-TRINITY-2026-PRO</span>
+      </div>
+    </div>
+    <div class="sb-group">
+      <span id="sbMode">Mod: —</span>
+      <span id="sbTime"></span>
+      <span>VV Hybrid Universe © 2026</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ASK LEA MODAL -->
+<div class="modal-overlay" id="askModal" onclick="if(event.target===this)closeAskModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">✦ Ask Lea</span>
+      <button class="modal-close" onclick="closeAskModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="ask-input" id="askInput" placeholder="Întreabă-mă ceva despre VV, date din rafturi, sau orice altceva..." rows="3"></textarea>
+      <div class="ask-actions">
+        <button class="btn btn-execute" id="btnAsk" onclick="sendAskLea()" style="padding:9px 20px;font-size:12px">Trimite</button>
+        <button class="btn btn-clear" onclick="document.getElementById('askInput').value=''" style="padding:9px 16px;font-size:12px">Clear</button>
+        <span class="ask-model-status" id="askModelStatus">— verificare model...</span>
+      </div>
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+        <span style="font-size:11px;color:var(--text-dim);margin-left:4px">Lea se gândește...</span>
+      </div>
+      <div class="ask-response" id="askResponse" style="color:rgba(255,255,255,0.3);font-style:italic">Răspunsul Lea apare aici...</div>
+      <div id="askHistoryWrap" style="display:none">
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px">RECENT</div>
+        <div class="ask-history" id="askHistory"></div>
+      </div>
+      <div class="ask-hint">Ctrl+Enter trimite · Esc închide · Ctrl+K deschide oricând</div>
+    </div>
+  </div>
+</div>
+
+<!-- SHARED MODULES -->
+<script src="../shared/modules/cache.js"></script>
+<script src="../shared/modules/shelves.js"></script>
+<script src="../shared/modules/voice.js"></script>
+<script src="lea-router.js"></script>
+
+<script>
+let logLines = [];
+
+// ── TAB SWITCH ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
+}
+
+// ── LOGGING ──
+function addLog(msg, type = 'dim') {
+  const box = document.getElementById('logsBox');
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  const ts = new Date().toLocaleTimeString('ro-RO');
+  line.textContent = `[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+  logLines.push({ ts, msg, type });
+}
+
+// ── MODE UI ──
+function applyModeUI(mode) {
+  const dot = document.getElementById('serverDot');
+  const txt = document.getElementById('serverText');
+  const badge = document.getElementById('modeBadge');
+  const notice = document.getElementById('onlineNotice');
+  const sbMode = document.getElementById('sbMode');
+
+  if (mode === 'local') {
+    dot.className = 'dot active';
+    txt.textContent = 'Server activ · Local';
+    badge.className = 'mode-badge local';
+    badge.textContent = 'LOCAL';
+    notice.classList.remove('visible');
+    sbMode.textContent = 'Mod: LOCAL';
+    addLog('Mod LOCAL detectat — Execute si Ask Lea active', 'ok');
+  } else {
+    dot.className = 'dot pending';
+    txt.textContent = 'Server offline · Online';
+    badge.className = 'mode-badge online';
+    badge.textContent = 'ONLINE';
+    notice.classList.add('visible');
+    sbMode.textContent = 'Mod: ONLINE';
+    addLog('Mod ONLINE — Ask Lea activ (cache) · Execute necesita server local', 'warn');
+  }
+}
+
+async function reconnect() {
+  const dot = document.getElementById('serverDot');
+  const txt = document.getElementById('serverText');
+  dot.className = 'dot pending';
+  txt.textContent = 'Reconectare...';
+  await LeaRouter.detect();
+  applyModeUI(LeaRouter.mode());
+}
+
+// ── SETUP INFO (online mode) ──
+function showSetupInfo() {
+  const responseEl = document.getElementById('askResponse');
+  openAskLea();
+  responseEl.style.color = 'var(--amber)';
+  responseEl.style.fontStyle = 'normal';
+  responseEl.textContent =
+    'Pentru Execute local:\n\n' +
+    '1. Rulează: local\\launchers\\LEA_START.bat\n' +
+    '2. Server pornit pe http://localhost:9999\n' +
+    '3. Această pagină se reconectează automat\n\n' +
+    'Sau click pe statusul din header pentru reconnect manual.';
+}
+
+// ── EXECUTE ──
+async function executeCommand() {
+  const input = document.getElementById('cmdInput').value.trim();
+  const btn = document.getElementById('btnExecute');
+
+  if (!input) { setStatus('Introdu o comandă', 'warn'); return; }
+  if (!input.includes('### LEA_EXECUTE ###')) {
+    setStatus('Format invalid — lipsește ### LEA_EXECUTE ###', 'err');
+    addLog('Format invalid', 'warn');
+    return;
+  }
+
+  if (!LeaRouter.isLocal()) {
+    setStatus('Execute necesită server local — pornește LEA_START.bat', 'err');
+    addLog('Execute blocat — mod online, server local oprit', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  setStatus('Se execută...', 'info');
+
+  let comenzi;
+  try {
+    const match = input.match(/COMENZI\s*=\s*(\[[\s\S]*?\])\s*(?:$|\n\S)/);
+    if (!match) throw new Error('Nu am găsit blocul COMENZI = [...]');
+    const jsonStr = match[1]
+      .replace(/'/g, '"')
+      .replace(/True/g, 'true')
+      .replace(/False/g, 'false')
+      .replace(/None/g, 'null');
+    comenzi = JSON.parse(jsonStr);
+  } catch (e) {
+    setStatus('Eroare parsare: ' + e.message, 'err');
+    addLog('Parse error: ' + e.message, 'err');
+    btn.disabled = false;
+    return;
+  }
+
+  addLog(`Executare ${comenzi.length} acțiune(i)...`, 'info');
+
+  const results = [];
+  for (const cmd of comenzi) {
+    try {
+      const d = await LeaRouter.execute(cmd);
+      results.push({ cmd, result: d });
+      if (d.pending) {
+        addLog(`[PENDING] ${cmd.type} — așteaptă aprobare în Control Panel`, 'warn');
+      } else if (d.success) {
+        addLog(`[OK] ${cmd.type}: ${d.message || cmd.path || ''}`, 'ok');
+      } else {
+        addLog(`[ERR] ${cmd.type}: ${d.error}`, 'err');
+      }
+    } catch (e) {
+      addLog(`[ERR] ${cmd.type}: ${e.message}`, 'err');
+      results.push({ cmd, result: { success: false, error: e.message } });
+    }
+  }
+
+  showPreview(comenzi, results);
+  const ok = results.filter(r => r.result.success || r.result.pending).length;
+  setStatus(`${ok}/${comenzi.length} OK`, ok === comenzi.length ? 'ok' : 'warn');
+  btn.disabled = false;
+  document.querySelectorAll('.tab')[1].click();
+}
+
+function showPreview(comenzi, results) {
+  const box = document.getElementById('previewBox');
+  let html = '';
+  results.forEach(({ cmd, result }) => {
+    const icon = result.success ? '✓' : result.pending ? '◷' : '✗';
+    const cls = result.success ? 'log-ok' : result.pending ? 'log-warn' : 'log-err';
+    const detail = result.message || result.error || (result.pending ? 'Așteaptă aprobare' : '');
+    html += `<div class="log-line ${cls}">${icon} ${cmd.type}${cmd.path ? ': ' + cmd.path : ''}</div>`;
+    if (detail) html += `<div class="log-line log-dim" style="padding-left:16px;font-size:11px">${detail}</div>`;
+  });
+  const allOk = results.every(r => r.result.success || r.result.pending);
+  html += `<div class="log-line ${allOk ? 'log-ok' : 'log-warn'}" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">`;
+  html += `${results.length} acțiune(i) procesate · ${new Date().toLocaleString('ro-RO')}</div>`;
+  box.innerHTML = html;
+}
+
+function setStatus(msg, type = 'dim') {
+  const el = document.getElementById('execStatus');
+  const colors = { ok: '#10b981', err: '#ef4444', warn: '#f59e0b', info: '#60a5fa', dim: 'rgba(255,255,255,0.4)' };
+  el.style.color = colors[type] || colors.dim;
+  el.textContent = msg;
+}
+
+function clearInput() {
+  document.getElementById('cmdInput').value = '';
+  document.getElementById('execStatus').textContent = '';
+}
+
+function openControlPanel() {
+  if (LeaRouter.isLocal()) {
+    window.open('http://localhost:9999/control_panel.html', '_blank');
+  } else {
+    addLog('Control Panel disponibil doar în mod local', 'warn');
+  }
+}
+
+// ── CLOCK ──
+function updateClock() {
+  document.getElementById('sbTime').textContent = new Date().toLocaleTimeString('ro-RO');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── ASK LEA ──
+const ASK_STATUS_LABELS = {
+  ready:             '✓ TinyLlama ready',
+  loading:           '⟳ Se încarcă... (~345MB primul start)',
+  not_loaded:        '◌ Modelul se încarcă automat la click',
+  model_missing:     '◌ Se descarcă automat (~345MB)',
+  llm_not_installed: '✗ Rulează: pip install llama-cpp-python ctransformers',
+  server_offline:    '◌ Mod online — răspuns din cache/shelves',
+  online:            '◌ Mod online — fără TinyLlama local'
+};
+
+async function checkLeaModel() {
+  if (!LeaRouter.isLocal()) return 'online';
+  try {
+    const d = await LeaRouter.status();
+    return d.ask_status || 'not_loaded';
+  } catch { return 'server_offline'; }
+}
+
+function setAskStatus(status) {
+  const el = document.getElementById('askModelStatus');
+  el.textContent = ASK_STATUS_LABELS[status] || status;
+  el.style.color = status === 'ready'
+    ? 'var(--green)'
+    : (status === 'loading' || status === 'not_loaded' || status === 'online' || status === 'model_missing')
+      ? 'var(--amber)'
+      : 'var(--red)';
+}
+
+const ASK_HISTORY_KEY = 'lea_ask_history';
+
+function openAskLea() {
+  const overlay = document.getElementById('askModal');
+  overlay.classList.add('open');
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+  setTimeout(() => document.getElementById('askInput').focus(), 50);
+  checkLeaModel().then(setAskStatus);
+  renderHistory();
+}
+
+function closeAskModal() {
+  const overlay = document.getElementById('askModal');
+  overlay.classList.remove('visible');
+  setTimeout(() => overlay.classList.remove('open'), 200);
+}
+
+function saveHistory(q) {
+  let h = JSON.parse(localStorage.getItem(ASK_HISTORY_KEY) || '[]');
+  h = [q, ...h.filter(x => x !== q)].slice(0, 5);
+  localStorage.setItem(ASK_HISTORY_KEY, JSON.stringify(h));
+}
+
+function renderHistory() {
+  const h = JSON.parse(localStorage.getItem(ASK_HISTORY_KEY) || '[]');
+  const wrap = document.getElementById('askHistoryWrap');
+  const box = document.getElementById('askHistory');
+  if (!h.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  box.innerHTML = h.map(q =>
+    `<span class="history-chip" onclick="document.getElementById('askInput').value=this.dataset.q" data-q="${q.replace(/"/g,'&quot;')}" title="${q.replace(/"/g,'&quot;')}">${q.substring(0,35)}${q.length>35?'...':''}</span>`
+  ).join('');
+}
+
+async function sendAskLea() {
+  const question = document.getElementById('askInput').value.trim();
+  if (!question) return;
+  const responseEl = document.getElementById('askResponse');
+  const btn = document.getElementById('btnAsk');
+  const typing = document.getElementById('typingIndicator');
+
+  btn.disabled = true;
+  responseEl.style.display = 'none';
+  typing.classList.add('active');
+
+  try {
+    const cached = LeaCache.getCache(question);
+    if (cached) {
+      typing.classList.remove('active');
+      responseEl.style.display = 'block';
+      responseEl.style.color = 'var(--text)';
+      responseEl.style.fontStyle = 'normal';
+      responseEl.textContent = cached + '\n\n[răspuns din cache]';
+      setAskStatus('ready');
+      saveHistory(question);
+      renderHistory();
+      btn.disabled = false;
+      return;
+    }
+
+    const d = await LeaRouter.ask(question);
+
+    typing.classList.remove('active');
+    responseEl.style.display = 'block';
+
+    if (d.success) {
+      responseEl.style.color = 'var(--text)';
+      responseEl.style.fontStyle = 'normal';
+      responseEl.textContent = d.answer;
+      LeaCache.saveCache(question, d.answer);
+      addLog('[ASK LEA] ' + question.substring(0, 60), 'info');
+      setAskStatus('ready');
+      saveHistory(question);
+      renderHistory();
+    } else if (d.error === 'loading') {
+      responseEl.style.color = 'var(--amber)';
+      responseEl.textContent = d.message || 'Modelul se încarcă, încearcă în 15-20 secunde...';
+      setAskStatus('loading');
+    } else if (d.error === 'online_not_configured' || d.error === 'online_mode') {
+      responseEl.style.color = 'var(--amber)';
+      responseEl.textContent = d.message || 'Mod online — pornește serverul local pentru TinyLlama.';
+      setAskStatus('online');
+    } else if (d.error === 'model_missing' || d.error === 'llm_not_installed') {
+      responseEl.style.color = 'var(--amber)';
+      responseEl.textContent = d.message;
+      setAskStatus(d.error);
+    } else {
+      responseEl.style.color = 'var(--red)';
+      responseEl.textContent = d.error || d.message || 'Eroare necunoscută';
+    }
+  } catch (e) {
+    typing.classList.remove('active');
+    responseEl.style.display = 'block';
+    responseEl.style.color = 'var(--red)';
+    responseEl.textContent = 'Eroare: ' + e.message;
+    setAskStatus('server_offline');
+  }
+  btn.disabled = false;
+}
+
+document.addEventListener('keydown', e => {
+  const modalOpen = document.getElementById('askModal').classList.contains('open');
+  if (e.key === 'Escape' && modalOpen) { closeAskModal(); return; }
+  if (e.ctrlKey && e.key === 'k') { e.preventDefault(); openAskLea(); return; }
+  if (e.ctrlKey && e.key === 'Enter' && modalOpen) { e.preventDefault(); sendAskLea(); }
+});
+
+// ── INIT ──
+(async () => {
+  addLog('Detectare mod (local/online)...', 'info');
+  await LeaRouter.detect();
+  applyModeUI(LeaRouter.mode());
+})();
+</script>
+</body>
+</html>
