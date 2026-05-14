@@ -4,7 +4,17 @@ import struct
 import threading
 
 LEA_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-MODEL_PATH = os.path.join(LEA_ROOT, 'data', 'models', 'tinyllama.gguf')
+
+# Check multiple candidate paths; C:\LEA_CORE is the primary install location
+_MODEL_CANDIDATES = [
+    r'C:\LEA_CORE\data\models\tinyllama.gguf',
+    os.path.join(LEA_ROOT, 'data', 'models', 'tinyllama.gguf'),
+    os.path.join(os.path.expanduser('~'), 'LEA_CORE', 'data', 'models', 'tinyllama.gguf'),
+]
+MODEL_PATH = next(
+    (p for p in _MODEL_CANDIDATES if os.path.isfile(p)),
+    _MODEL_CANDIDATES[0]
+)
 
 # Surse de context (ordine de prioritate)
 CONTEXT_PATHS = [
@@ -56,11 +66,15 @@ def load_model_async():
     def _load():
         global _llm, _loading, _load_error, _backend
 
+        print(f'[LEA AI] MODEL_PATH rezolvat la: {MODEL_PATH}')
+        print(f'[LEA AI] Fisier exista: {os.path.isfile(MODEL_PATH)}')
+        print(f'[LEA AI] GGUF valid: {_is_valid_gguf(MODEL_PATH)}')
+
         # --- METODA 1: llama-cpp-python cu fisier local valid ---
         if _is_valid_gguf(MODEL_PATH):
             try:
                 from llama_cpp import Llama
-                print('[LEA AI] Loading local GGUF cu llama-cpp...')
+                print('[LEA AI] [M1] Loading local GGUF cu llama-cpp...')
                 _llm = Llama(
                     model_path=MODEL_PATH,
                     n_ctx=2048,
@@ -70,16 +84,16 @@ def load_model_async():
                 )
                 _backend = 'llama-cpp'
                 _load_error = None
-                print('[LEA AI] llama-cpp OK')
+                print('[LEA AI] [M1] llama-cpp OK')
                 _loading = False
                 return
             except Exception as e:
-                print(f'[LEA AI] llama-cpp local fail: {e}')
+                print(f'[LEA AI] [M1] llama-cpp local fail: {e}')
 
         # --- METODA 2: llama-cpp from_pretrained (download automat) ---
         try:
             from llama_cpp import Llama
-            print('[LEA AI] Download model de pe HuggingFace cu llama-cpp...')
+            print('[LEA AI] [M2] Download model de pe HuggingFace cu llama-cpp...')
             _llm = Llama.from_pretrained(
                 repo_id='TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
                 filename='*Q2_K*.gguf',
@@ -91,32 +105,32 @@ def load_model_async():
             )
             _backend = 'llama-cpp'
             _load_error = None
-            print('[LEA AI] llama-cpp from_pretrained OK')
+            print('[LEA AI] [M2] llama-cpp from_pretrained OK')
             _loading = False
             return
         except Exception as e:
-            print(f'[LEA AI] llama-cpp from_pretrained fail: {e}')
+            print(f'[LEA AI] [M2] llama-cpp from_pretrained fail: {e}')
 
         # --- METODA 3: ctransformers cu fisier local ---
         if _is_valid_gguf(MODEL_PATH):
             try:
                 from ctransformers import AutoModelForCausalLM
-                print('[LEA AI] Loading local GGUF cu ctransformers...')
+                print('[LEA AI] [M3] Loading local GGUF cu ctransformers...')
                 _llm = AutoModelForCausalLM.from_pretrained(
                     MODEL_PATH, model_type='llama'
                 )
                 _backend = 'ctransformers'
                 _load_error = None
-                print('[LEA AI] ctransformers local OK')
+                print('[LEA AI] [M3] ctransformers local OK')
                 _loading = False
                 return
             except Exception as e:
-                print(f'[LEA AI] ctransformers local fail: {e}')
+                print(f'[LEA AI] [M3] ctransformers local fail: {e}')
 
         # --- METODA 4: ctransformers download HuggingFace ---
         try:
             from ctransformers import AutoModelForCausalLM
-            print('[LEA AI] Download model de pe HuggingFace cu ctransformers...')
+            print('[LEA AI] [M4] Download model de pe HuggingFace cu ctransformers...')
             _llm = AutoModelForCausalLM.from_pretrained(
                 'TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
                 model_file='tinyllama-1.1b-chat-v1.0.Q2_K.gguf',
@@ -124,12 +138,12 @@ def load_model_async():
             )
             _backend = 'ctransformers'
             _load_error = None
-            print('[LEA AI] ctransformers from HF OK')
+            print('[LEA AI] [M4] ctransformers from HF OK')
             _loading = False
             return
         except Exception as e:
-            print(f'[LEA AI] ctransformers HF fail: {e}')
-            _load_error = 'Toate metodele au esuat. Ruleaza download_model.bat.'
+            print(f'[LEA AI] [M4] ctransformers HF fail: {e}')
+            _load_error = 'Modelul se pregateste... (~10-30 sec prima data)'
 
         _loading = False
 
