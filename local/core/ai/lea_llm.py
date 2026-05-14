@@ -1,153 +1,75 @@
 import os
 import json
-import struct
+import time
 import threading
+import urllib.request
+import urllib.error
 
 LEA_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Check multiple candidate paths; C:\LEA_CORE is the primary install location
-_MODEL_CANDIDATES = [
-    r'C:\LEA_CORE\data\models\tinyllama.gguf',
-    os.path.join(LEA_ROOT, 'data', 'models', 'tinyllama.gguf'),
-    os.path.join(os.path.expanduser('~'), 'LEA_CORE', 'data', 'models', 'tinyllama.gguf'),
-]
-MODEL_PATH = next(
-    (p for p in _MODEL_CANDIDATES if os.path.isfile(p)),
-    _MODEL_CANDIDATES[0]
-)
-
-# Surse de context (ordine de prioritate)
-CONTEXT_PATHS = [
-    os.path.join('C:\\', 'LEA_PRIVAT', 'active', 'context.txt'),
-    os.path.join(os.path.expanduser('~'), 'Desktop', 'LEA_OBSERVER', 'context.txt'),
-]
 RAFT_DIRS = [
     os.path.join('C:\\', 'LEA_PRIVAT', 'rafturi'),
     os.path.join(LEA_ROOT, 'data', 'rafturile'),
 ]
+CONTEXT_PATHS = [
+    os.path.join('C:\\', 'LEA_PRIVAT', 'active', 'context.txt'),
+    os.path.join(os.path.expanduser('~'), 'Desktop', 'LEA_OBSERVER', 'context.txt'),
+]
 
-_llm = None
-_backend = None   # 'llama-cpp' | 'ctransformers'
-_loading = False
-_load_error = None
-_lock = threading.Lock()
+_cache = {}
+_cache_lock = threading.Lock()
+CACHE_TTL = 3600
+
+SIMPLE_TRIGGERS = [
+    'cine ești', 'cine esti', 'ce ești', 'ce esti',
+    'ce poți', 'ce poti', 'ce faci', 'ce mai faci',
+    'help', 'ajutor', 'salut', 'bună', 'buna', 'hello', 'hi',
+]
+
+LOCAL_RESPONSES = {
+    'cine ești':  'Sunt LEA — orchestratorul AI al VV Hybrid Universe. Execut comenzi local și răspund la întrebări complexe prin Gemini. Privacy totală, control total.',
+    'cine esti':  'Sunt LEA — orchestratorul AI al VV Hybrid Universe. Execut comenzi local și răspund la întrebări complexe prin Gemini. Privacy totală, control total.',
+    'ce poți':    'Pot executa comenzi locale (creare/citire fișiere), răspunde la orice întrebare prin Gemini, și funcționez offline cu cache. Spune-mi ce ai nevoie!',
+    'ce poti':    'Pot executa comenzi locale (creare/citire fișiere), răspunde la orice întrebare prin Gemini, și funcționez offline cu cache. Spune-mi ce ai nevoie!',
+    'help':       'Comenzi: "creează fișier X", "citește X". Întrebări complexe: direct prin Gemini. Cache instant pentru repetiții.',
+    'ajutor':     'Cu ce te ajut? Spune-mi ce vrei să fac.',
+    'salut':      'Salut! Sunt LEA. Cu ce te ajut?',
+    'bună':       'Bună! Sunt LEA. Cu ce te pot ajuta?',
+    'buna':       'Bună! Sunt LEA. Cu ce te pot ajuta?',
+    'hello':      "Hello! I'm LEA, your VV assistant. What do you need?",
+    'hi':         "Hi! LEA here. How can I help?",
+    'ce faci':    'Funcționez perfect! Aștept întrebări sau comenzi.',
+    'ce mai faci':'Funcționez perfect! Aștept întrebări sau comenzi.',
+}
 
 
-def _is_valid_gguf(path):
-    if not os.path.isfile(path):
-        return False
-    if os.path.getsize(path) < 50_000_000:
-        return False
-    with open(path, 'rb') as f:
-        magic = f.read(4)
-        ver = struct.unpack('<I', f.read(4))[0]
-    return magic == b'GGUF' and ver <= 3
+def _get_cache(question):
+    with _cache_lock:
+        entry = _cache.get(question.lower().strip())
+        if entry and time.time() - entry['ts'] < CACHE_TTL:
+            return entry['answer'], entry['source']
+    return None, None
 
 
-def get_status():
-    if _llm is not None:
-        return 'ready'
-    if _loading:
-        return 'loading'
-    if _load_error:
-        return f'error: {_load_error}'
-    if not _is_valid_gguf(MODEL_PATH):
-        return 'model_missing'
-    return 'not_loaded'
+def _set_cache(question, answer, source):
+    with _cache_lock:
+        _cache[question.lower().strip()] = {'answer': answer, 'source': source, 'ts': time.time()}
+        if len(_cache) > 200:
+            oldest = min(_cache, key=lambda k: _cache[k]['ts'])
+            del _cache[oldest]
 
 
-def load_model_async():
-    global _llm, _loading, _load_error, _backend
-    with _lock:
-        if _llm is not None or _loading:
-            return
-        _loading = True
+def _is_simple(question):
+    q = question.lower().strip()
+    return any(t in q for t in SIMPLE_TRIGGERS)
 
-    def _load():
-        global _llm, _loading, _load_error, _backend
 
-        print(f'[LEA AI] MODEL_PATH rezolvat la: {MODEL_PATH}')
-        print(f'[LEA AI] Fisier exista: {os.path.isfile(MODEL_PATH)}')
-        print(f'[LEA AI] GGUF valid: {_is_valid_gguf(MODEL_PATH)}')
-
-        # --- METODA 1: llama-cpp-python cu fisier local valid ---
-        if _is_valid_gguf(MODEL_PATH):
-            try:
-                from llama_cpp import Llama
-                print('[LEA AI] [M1] Loading local GGUF cu llama-cpp...')
-                _llm = Llama(
-                    model_path=MODEL_PATH,
-                    n_ctx=2048,
-                    n_threads=2,
-                    n_gpu_layers=0,
-                    verbose=False
-                )
-                _backend = 'llama-cpp'
-                _load_error = None
-                print('[LEA AI] [M1] llama-cpp OK')
-                _loading = False
-                return
-            except Exception as e:
-                print(f'[LEA AI] [M1] llama-cpp local fail: {e}')
-
-        # --- METODA 2: llama-cpp from_pretrained (download automat) ---
-        try:
-            from llama_cpp import Llama
-            print('[LEA AI] [M2] Download model de pe HuggingFace cu llama-cpp...')
-            _llm = Llama.from_pretrained(
-                repo_id='TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
-                filename='*Q2_K*.gguf',
-                n_ctx=2048,
-                n_threads=2,
-                n_gpu_layers=0,
-                verbose=False,
-                cache_dir=os.path.join(LEA_ROOT, 'data', 'models')
-            )
-            _backend = 'llama-cpp'
-            _load_error = None
-            print('[LEA AI] [M2] llama-cpp from_pretrained OK')
-            _loading = False
-            return
-        except Exception as e:
-            print(f'[LEA AI] [M2] llama-cpp from_pretrained fail: {e}')
-
-        # --- METODA 3: ctransformers cu fisier local ---
-        if _is_valid_gguf(MODEL_PATH):
-            try:
-                from ctransformers import AutoModelForCausalLM
-                print('[LEA AI] [M3] Loading local GGUF cu ctransformers...')
-                _llm = AutoModelForCausalLM.from_pretrained(
-                    MODEL_PATH, model_type='llama'
-                )
-                _backend = 'ctransformers'
-                _load_error = None
-                print('[LEA AI] [M3] ctransformers local OK')
-                _loading = False
-                return
-            except Exception as e:
-                print(f'[LEA AI] [M3] ctransformers local fail: {e}')
-
-        # --- METODA 4: ctransformers download HuggingFace ---
-        try:
-            from ctransformers import AutoModelForCausalLM
-            print('[LEA AI] [M4] Download model de pe HuggingFace cu ctransformers...')
-            _llm = AutoModelForCausalLM.from_pretrained(
-                'TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF',
-                model_file='tinyllama-1.1b-chat-v1.0.Q2_K.gguf',
-                model_type='llama'
-            )
-            _backend = 'ctransformers'
-            _load_error = None
-            print('[LEA AI] [M4] ctransformers from HF OK')
-            _loading = False
-            return
-        except Exception as e:
-            print(f'[LEA AI] [M4] ctransformers HF fail: {e}')
-            _load_error = 'Modelul se pregateste... (~10-30 sec prima data)'
-
-        _loading = False
-
-    threading.Thread(target=_load, daemon=True).start()
+def _local_response(question):
+    q = question.lower().strip()
+    for key, answer in LOCAL_RESPONSES.items():
+        if key in q:
+            return answer
+    return 'Încearcă: "Cine ești?", "Ce poți face?" sau orice întrebare complexă!'
 
 
 def _load_context():
@@ -155,11 +77,7 @@ def _load_context():
         if os.path.isfile(path):
             try:
                 with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read(600).strip()
-                if content and not content.startswith('#'):
-                    return content
-                # Returneaza si daca are linii non-comment
-                lines = [l for l in content.splitlines() if l.strip() and not l.startswith('#')]
+                    lines = [l for l in f.read(600).splitlines() if l.strip() and not l.startswith('#')]
                 if lines:
                     return '\n'.join(lines[:5])
             except Exception:
@@ -178,55 +96,28 @@ def _load_rafturi():
             try:
                 with open(os.path.join(raft_dir, fname), 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                parts.append(f'[{fname}]: {json.dumps(data, ensure_ascii=False)[:500]}')
+                parts.append(f'[{fname}]: {json.dumps(data, ensure_ascii=False)[:400]}')
             except Exception:
                 pass
         if parts:
-            break  # Foloseste primul director cu date
+            break
     return '\n'.join(parts[:6])
 
 
-def _generate(prompt):
-    if _backend == 'llama-cpp':
-        result = _llm(
-            prompt,
-            max_tokens=256,
-            temperature=0.7,
-            top_p=0.9,
-            stop=['</s>', '<|user|>', '<|system|>'],
-            echo=False
-        )
-        return result['choices'][0]['text'].strip()
-    elif _backend == 'ctransformers':
-        return _llm(
-            prompt,
-            max_new_tokens=256,
-            temperature=0.7,
-            top_p=0.9,
-            stop=['</s>', '<|user|>']
-        ).strip()
-    raise RuntimeError('No backend loaded')
-
-
-def ask(question, extra_context=''):
-    global _llm
-
-    if _llm is None:
-        status = get_status()
-        if status in ('model_missing', 'not_loaded'):
-            load_model_async()
-            return None, 'loading'
-        return None, status
+def _ask_gemini(question, extra_context=''):
+    key = os.getenv('GEMINI_API_KEY', '')
+    if not key:
+        return None, 'no_key'
 
     system = (
-        'Esti LEA, asistentul AI personal al lui Cosmin Toma, CEO VV Hybrid Universe. '
-        'Raspunzi concis, clar, in romana sau engleza dupa cum intreaba. '
-        'VV Hybrid Universe: companie tech, suveranitate digitala, AI local, privacy totala.'
+        'Ești LEA, asistentul AI personal al lui Cosmin Toma, CEO VV Hybrid Universe. '
+        'Răspunzi concis și clar, în română sau engleză după cum întreabă utilizatorul. '
+        'VV Hybrid Universe: companie tech, suveranitate digitală, AI local, privacy totală.'
     )
 
     raft = _load_rafturi()
     if raft:
-        system += f'\n\nCunostinte:\n{raft[:1500]}'
+        system += f'\n\nCunoștințe din rafturi:\n{raft[:1000]}'
 
     ctx = _load_context()
     if ctx:
@@ -235,10 +126,65 @@ def ask(question, extra_context=''):
     if extra_context:
         system += f'\n\n{extra_context}'
 
-    prompt = f'<|system|>\n{system}</s>\n<|user|>\n{question}</s>\n<|assistant|>\n'
+    full_prompt = f'{system}\n\nÎntrebare: {question}'
+
+    payload = json.dumps({
+        'contents': [{'role': 'user', 'parts': [{'text': full_prompt}]}],
+        'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 512}
+    }).encode('utf-8')
+
+    url = (
+        'https://generativelanguage.googleapis.com/v1beta/models/'
+        f'gemini-2.0-flash:generateContent?key={key}'
+    )
 
     try:
-        answer = _generate(prompt)
-        return answer, 'ok'
+        req = urllib.request.Request(
+            url, data=payload, headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+        text = result['candidates'][0]['content']['parts'][0]['text'].strip()
+        return text, 'gemini'
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8', errors='replace')[:200]
+        print(f'[LEA AI] Gemini HTTP {e.code}: {body}')
+        return None, f'gemini_http_{e.code}'
     except Exception as e:
-        return None, f'error: {e}'
+        print(f'[LEA AI] Gemini fail: {e}')
+        return None, f'gemini_error'
+
+
+def ask(question, extra_context=''):
+    """Returns (answer, status, source) — source: 'cache' | 'local' | 'gemini'"""
+    q = question.strip()
+
+    cached_answer, cached_source = _get_cache(q)
+    if cached_answer:
+        return cached_answer, 'ok', 'cache'
+
+    if _is_simple(q):
+        answer = _local_response(q)
+        _set_cache(q, answer, 'local')
+        return answer, 'ok', 'local'
+
+    t0 = time.time()
+    answer, source = _ask_gemini(q, extra_context)
+    if answer:
+        _set_cache(q, answer, 'gemini')
+        print(f'[LEA AI] Gemini OK ({int((time.time()-t0)*1000)}ms)')
+        return answer, 'ok', 'gemini'
+
+    if source == 'no_key':
+        fallback = (
+            'Pentru răspunsuri complexe, adaugă variabila de mediu GEMINI_API_KEY. '
+            'Încearcă întrebări simple: "Cine ești?", "Ce poți?"'
+        )
+        return fallback, 'ok', 'local'
+
+    return None, source, 'error'
+
+
+def get_status():
+    key = os.getenv('GEMINI_API_KEY', '')
+    return 'gemini_ready' if key else 'no_api_key'

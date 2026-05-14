@@ -102,10 +102,16 @@ class PairingServer(BaseHTTPRequestHandler):
                 print(f"[PAIRING CODE] {PairingServer.pairing_code}")
 
             elif api_path == '/status':
+                try:
+                    from core.ai.lea_llm import get_status as _ai_status
+                    ai_st = _ai_status()
+                except Exception:
+                    ai_st = 'not_loaded'
                 self._send_json({
                     'paired': PairingServer.paired_session is not None,
                     'mode': PairingServer.action_mode,
-                    'pending_actions': len(PairingServer.pending_actions)
+                    'pending_actions': len(PairingServer.pending_actions),
+                    'ask_status': ai_st
                 })
 
             elif api_path == '/pending_actions':
@@ -114,9 +120,10 @@ class PairingServer(BaseHTTPRequestHandler):
             elif api_path == '/ask_status':
                 try:
                     from core.ai.lea_llm import get_status
-                    self._send_json({'status': get_status()})
+                    st = get_status()
+                    self._send_json({'status': st, 'ask_status': st})
                 except ImportError:
-                    self._send_json({'status': 'llm_not_installed'})
+                    self._send_json({'status': 'not_installed', 'ask_status': 'not_installed'})
 
             else:
                 # Serveste fisiere statice din interface/
@@ -210,22 +217,17 @@ class PairingServer(BaseHTTPRequestHandler):
                     self._send_json({'success': False, 'error': 'No question'})
                     return
                 try:
-                    from core.ai.lea_llm import ask, load_model_async
-                    answer, status = ask(question, extra_ctx)
+                    from core.ai.lea_llm import ask
+                    answer, status, source = ask(question, extra_ctx)
                     if status == 'ok':
-                        self._send_json({'success': True, 'answer': answer})
-                        _journal('ASK_LEA', question[:60], True)
-                    elif status == 'model_missing':
-                        self._send_json({'success': False, 'error': 'model_missing',
-                                        'message': 'Modelul nu e descarcat. Ruleaza install_tinyllama.bat'})
-                    elif status == 'loading':
-                        self._send_json({'success': False, 'error': 'loading',
-                                        'message': 'Modelul se incarca... incearca in 15-20 secunde'})
+                        self._send_json({'success': True, 'answer': answer, 'source': source})
+                        _journal('ASK_LEA', f'[{source}] {question[:55]}', True)
                     else:
-                        self._send_json({'success': False, 'error': status})
-                except ImportError:
-                    self._send_json({'success': False, 'error': 'llm_not_installed',
-                                    'message': 'llama-cpp-python neinstalat. Ruleaza install_tinyllama.bat'})
+                        self._send_json({'success': False, 'error': status,
+                                        'message': 'Eroare la procesarea întrebării.'})
+                except Exception as e:
+                    self._send_json({'success': False, 'error': 'orchestrator_error',
+                                    'message': str(e)})
 
             else:
                 self._send_json({'error': 'Not found'}, 404)
