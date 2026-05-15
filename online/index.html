@@ -435,6 +435,76 @@ body::before {
 .source-badge.cache  { color: var(--text-dim); border: 1px solid var(--glass-border); background: var(--glass); }
 .source-badge.local  { color: var(--green); border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
 .source-badge.gemini { color: var(--amber); border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+
+/* ── AI BADGE (header) ── */
+.badge-ai { font-size: 9px; padding: 3px 10px; border-radius: 20px; letter-spacing: 1px; font-weight: 600; transition: all 0.3s; }
+.badge-ai.gemini  { color: var(--amber); border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+.badge-ai.local-ai{ color: var(--green); border: 1px solid rgba(16,185,129,0.3);  background: rgba(16,185,129,0.08); }
+.badge-ai.offline { color: var(--text-dim); border: 1px solid var(--glass-border); background: var(--glass); }
+
+/* ── TOAST ── */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast {
+  min-width: 240px; max-width: 360px; padding: 12px 16px; border-radius: 10px;
+  font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 10px;
+  backdrop-filter: blur(20px); pointer-events: all; letter-spacing: 0.2px;
+  animation: toastIn 0.3s ease; transition: opacity 0.3s, transform 0.3s;
+}
+.toast.success { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+.toast.error   { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: #ef4444; }
+.toast.info    { background: rgba(96,165,250,0.12);  border: 1px solid rgba(96,165,250,0.3);  color: #60a5fa; }
+.toast.warn    { background: rgba(245,158,11,0.12);  border: 1px solid rgba(245,158,11,0.3);  color: #f59e0b; }
+.toast-msg { flex: 1; }
+.toast-close { cursor: pointer; opacity: 0.6; font-size: 16px; line-height: 1; }
+.toast-close:hover { opacity: 1; }
+.toast.hide { opacity: 0; transform: translateX(20px); }
+@keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+/* ── CONTROL PANEL MODAL ── */
+.cp-modal { max-width: 480px; }
+.cp-section { margin-bottom: 22px; }
+.cp-section:last-child { margin-bottom: 0; }
+.cp-label { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+.model-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: 9px; border: 1px solid var(--glass-border); background: var(--glass);
+  margin-bottom: 6px; transition: all 0.2s;
+}
+.model-row.active-model { border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.05); }
+.model-row.soon-row { opacity: 0.4; }
+.model-indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.model-indicator.on  { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.model-indicator.off { background: transparent; border: 2px solid rgba(255,255,255,0.2); }
+.model-text { flex: 1; }
+.model-title { font-size: 13px; color: var(--text); }
+.model-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.model-tag { font-size: 9px; padding: 2px 8px; border-radius: 12px; font-weight: 600; letter-spacing: 1px; }
+.model-tag.green { color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.model-tag.amber { color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.model-tag.dim   { color: var(--text-dim); border: 1px solid var(--glass-border); }
+.mode-row { display: flex; gap: 8px; margin-top: 4px; }
+.mode-pill {
+  flex: 1; padding: 10px; border-radius: 9px; text-align: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer;
+  border: 1px solid var(--glass-border); background: var(--glass); color: var(--text-dim);
+  transition: all 0.2s; font-family: inherit;
+}
+.mode-pill.active { color: var(--gold); border-color: var(--gold-border); background: var(--gold-dim); }
+.cp-code-box {
+  background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border);
+  border-radius: 9px; padding: 16px; text-align: center;
+  font-size: 26px; font-family: 'SF Mono', 'Cascadia Code', monospace; font-weight: 700;
+  color: var(--gold); letter-spacing: 10px; margin-bottom: 10px;
+}
+.cp-btns { display: flex; gap: 8px; }
+
+/* ── MICRO-ANIMATIONS ── */
+.btn-ask-lea:hover { background: rgba(201,168,76,0.22); box-shadow: 0 0 18px rgba(201,168,76,0.15); transform: translateY(-1px) scale(1.02); }
+.btn-ask-lea:active { transform: scale(0.97); }
+.btn-clear:hover { color: var(--text); border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
+.btn-panel:hover { background: rgba(59,130,246,0.18); transform: translateY(-1px); }
+.btn-clear:active, .btn-panel:active { transform: scale(0.98); }
+.btn-execute:hover { transform: translateY(-1px) scale(1.01); box-shadow: 0 5px 20px rgba(201,168,76,0.35); }
 </style>
 </head>
 <body>
@@ -453,8 +523,9 @@ body::before {
         <div class="dot" id="serverDot"></div>
         <span id="serverText">Detectare mod...</span>
       </div>
-      <button class="btn-ask-lea" onclick="openAskLea()">✦ Ask Lea</button>
+      <button class="btn-ask-lea" id="btnAskLea" onclick="openAskLea()">✦ Ask Lea</button>
       <div class="mode-badge detecting" id="modeBadge">DETECTING</div>
+      <div class="badge-ai offline" id="badgeAI">AI: —</div>
       <div class="badge-vv">VV HYBRID</div>
     </div>
   </div>
@@ -525,12 +596,15 @@ COMENZI = [
   <div class="statusbar">
     <div class="sb-group">
       <div class="sb-item">
-        <div class="sb-dot green"></div>
-        <span>Engine Active</span>
+        <div class="sb-dot" id="sbServerDot" style="background:var(--text-dim)"></div>
+        <span id="sbServerText">Detectare...</span>
       </div>
       <div class="sb-item">
-        <div class="sb-dot gold"></div>
-        <span>LEA-TRINITY-2026-PRO</span>
+        <div class="sb-dot" id="sbAIDot" style="background:rgba(255,255,255,0.2)"></div>
+        <span id="sbAIText">AI: —</span>
+      </div>
+      <div class="sb-item">
+        <span id="sbPending">0 pending</span>
       </div>
     </div>
     <div class="sb-group">
@@ -540,6 +614,72 @@ COMENZI = [
     </div>
   </div>
 
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+</div>
+
+<!-- CONTROL PANEL MODAL -->
+<div class="modal-overlay" id="cpModal" onclick="if(event.target===this)closeCPModal()">
+  <div class="modal cp-modal">
+    <div class="modal-header">
+      <span class="modal-title">⚙ Control Panel</span>
+      <button class="modal-close" onclick="closeCPModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="cp-section">
+        <div class="cp-label">AI Model</div>
+        <div class="model-row" id="cpRowGemini">
+          <div class="model-indicator off" id="cpDotGemini"></div>
+          <div class="model-text">
+            <div class="model-title">Gemini (Online)</div>
+            <div class="model-sub">Google Gemini 2.0 Flash · necesită GEMINI_API_KEY</div>
+          </div>
+          <span class="model-tag dim" id="cpTagGemini">OFF</span>
+        </div>
+        <div class="model-row active-model" id="cpRowLocal">
+          <div class="model-indicator on" id="cpDotLocal"></div>
+          <div class="model-text">
+            <div class="model-title">Local (Cache + Răspunsuri)</div>
+            <div class="model-sub">Offline ready · întrebări simple, instant</div>
+          </div>
+          <span class="model-tag green">ACTIV</span>
+        </div>
+        <div class="model-row soon-row">
+          <div class="model-indicator off"></div>
+          <div class="model-text">
+            <div class="model-title">Claude API</div>
+            <div class="model-sub">Anthropic Claude · în curând</div>
+          </div>
+          <span class="model-tag amber">SOON</span>
+        </div>
+      </div>
+      <div class="cp-section">
+        <div class="cp-label">Pairing Code <span style="font-size:9px;letter-spacing:0;text-transform:none;opacity:0.6">(opțional · pentru Execute)</span></div>
+        <div class="cp-code-box" id="cpCode">——————</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Share codul cu Claude Code pentru comenzi Execute</div>
+        <div class="cp-btns">
+          <button class="btn btn-execute" style="padding:8px 16px;font-size:11px" onclick="cpGenerateCode()">Generate</button>
+          <button class="btn btn-clear" style="padding:8px 14px;font-size:11px" onclick="cpCheckConn()">Check</button>
+        </div>
+        <div id="cpPairStatus" style="font-size:11px;margin-top:8px;color:var(--text-dim)"></div>
+      </div>
+      <div class="cp-section">
+        <div class="cp-label">Execution Mode</div>
+        <div class="mode-row">
+          <button class="mode-pill active" id="cpModeManual" onclick="setCPMode('manual')">⚪ MANUAL<br><span style="font-size:9px;font-weight:400;letter-spacing:0">Aprobare necesară</span></button>
+          <button class="mode-pill" id="cpModeAuto" onclick="setCPMode('auto')">⚫ AUTO<br><span style="font-size:9px;font-weight:400;letter-spacing:0">Execuție instantă</span></button>
+        </div>
+      </div>
+      <div class="cp-section">
+        <div class="cp-label">Pending Actions</div>
+        <div id="cpPendingList" style="font-size:12px;color:var(--text-dim)">Nicio acțiune în așteptare</div>
+      </div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.2);padding-top:4px">
+        LEA folosește TinyLlama (Apache 2.0) · Orchestrator: VV Hybrid Universe
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ASK LEA MODAL -->
@@ -608,6 +748,9 @@ function applyModeUI(mode) {
   const notice = document.getElementById('onlineNotice');
   const sbMode = document.getElementById('sbMode');
 
+  const sbDot = document.getElementById('sbServerDot');
+  const sbTxt = document.getElementById('sbServerText');
+
   if (mode === 'local') {
     dot.className = 'dot active';
     txt.textContent = 'Server activ · Local';
@@ -615,7 +758,10 @@ function applyModeUI(mode) {
     badge.textContent = 'LOCAL';
     notice.classList.remove('visible');
     sbMode.textContent = 'Mod: LOCAL';
+    if (sbDot) { sbDot.style.cssText = 'background:var(--green);box-shadow:0 0 6px var(--green)'; }
+    if (sbTxt) sbTxt.textContent = 'Server: Connected';
     addLog('Mod LOCAL detectat — Execute si Ask Lea active', 'ok');
+    checkLeaModel().then(updateAIBadge);
   } else {
     dot.className = 'dot pending';
     txt.textContent = 'Server offline · Online';
@@ -623,6 +769,9 @@ function applyModeUI(mode) {
     badge.textContent = 'ONLINE';
     notice.classList.add('visible');
     sbMode.textContent = 'Mod: ONLINE';
+    if (sbDot) { sbDot.style.cssText = 'background:var(--text-dim);box-shadow:none'; }
+    if (sbTxt) sbTxt.textContent = 'Server: Offline';
+    updateAIBadge('offline');
     addLog('Mod ONLINE — Ask Lea activ (cache) · Execute necesita server local', 'warn');
   }
 }
@@ -669,6 +818,7 @@ async function executeCommand() {
   }
 
   btn.disabled = true;
+  btn.textContent = 'Executing...';
   setStatus('Se execută...', 'info');
 
   let comenzi;
@@ -684,6 +834,7 @@ async function executeCommand() {
   } catch (e) {
     setStatus('Eroare parsare: ' + e.message, 'err');
     addLog('Parse error: ' + e.message, 'err');
+    btn.textContent = 'Execute';
     btn.disabled = false;
     return;
   }
@@ -711,7 +862,12 @@ async function executeCommand() {
   showPreview(comenzi, results);
   const ok = results.filter(r => r.result.success || r.result.pending).length;
   setStatus(`${ok}/${comenzi.length} OK`, ok === comenzi.length ? 'ok' : 'warn');
+  btn.textContent = 'Execute';
   btn.disabled = false;
+  showToast(
+    ok === comenzi.length ? `${ok} acțiune(i) executate` : `${ok}/${comenzi.length} OK — verifică Logs`,
+    ok === comenzi.length ? 'success' : 'warn'
+  );
   document.querySelectorAll('.tab')[1].click();
 }
 
@@ -743,11 +899,117 @@ function clearInput() {
   document.getElementById('execStatus').textContent = '';
 }
 
-function openControlPanel() {
-  if (LeaRouter.isLocal()) {
-    window.open('http://localhost:9999/control_panel.html', '_blank');
+// ── TOAST ──
+function showToast(msg, type = 'info', duration = 4000) {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success: '✓', error: '✗', info: '·', warn: '!' };
+  const icon = document.createElement('span'); icon.textContent = icons[type] || '·';
+  const msgEl = document.createElement('span'); msgEl.className = 'toast-msg'; msgEl.textContent = msg;
+  const closeEl = document.createElement('span'); closeEl.className = 'toast-close';
+  closeEl.textContent = '×'; closeEl.onclick = () => el.remove();
+  el.append(icon, msgEl, closeEl);
+  c.appendChild(el);
+  if (duration > 0) setTimeout(() => {
+    el.classList.add('hide');
+    setTimeout(() => el.remove(), 350);
+  }, duration);
+}
+
+// ── AI BADGE ──
+function updateAIBadge(status) {
+  const b = document.getElementById('badgeAI');
+  const aiTxt = document.getElementById('sbAIText');
+  const aiDot = document.getElementById('sbAIDot');
+  if (status === 'gemini_ready') {
+    b.textContent = '🌐 Gemini'; b.className = 'badge-ai gemini';
+    if (aiTxt) aiTxt.textContent = 'AI: Gemini';
+    if (aiDot) { aiDot.style.background = 'var(--amber)'; aiDot.style.boxShadow = '0 0 6px var(--amber)'; }
+  } else if (status === 'ready' || status === 'local') {
+    b.textContent = '⚡ Local'; b.className = 'badge-ai local-ai';
+    if (aiTxt) aiTxt.textContent = 'AI: Local';
+    if (aiDot) { aiDot.style.background = 'var(--green)'; aiDot.style.boxShadow = '0 0 6px var(--green)'; }
   } else {
-    addLog('Control Panel disponibil doar în mod local', 'warn');
+    b.textContent = 'AI: —'; b.className = 'badge-ai offline';
+    if (aiTxt) aiTxt.textContent = 'AI: —';
+    if (aiDot) { aiDot.style.background = 'rgba(255,255,255,0.2)'; aiDot.style.boxShadow = 'none'; }
+  }
+}
+
+// ── CONTROL PANEL ──
+function openControlPanel() { openCPModal(); }
+
+function openCPModal() {
+  const m = document.getElementById('cpModal');
+  m.classList.add('open');
+  requestAnimationFrame(() => m.classList.add('visible'));
+  refreshCPStatus();
+}
+
+function closeCPModal() {
+  const m = document.getElementById('cpModal');
+  m.classList.remove('visible');
+  setTimeout(() => m.classList.remove('open'), 200);
+}
+
+async function refreshCPStatus() {
+  if (!LeaRouter.isLocal()) {
+    document.getElementById('cpPairStatus').textContent = 'Server offline — pornește LEA_START.bat';
+    return;
+  }
+  try {
+    const d = await LeaRouter.status();
+    const ai = d.ask_status || 'no_api_key';
+    const geminiOn = ai === 'gemini_ready';
+    document.getElementById('cpDotGemini').className = geminiOn ? 'model-indicator on' : 'model-indicator off';
+    document.getElementById('cpTagGemini').textContent = geminiOn ? 'ACTIV' : 'OFF';
+    document.getElementById('cpTagGemini').className = geminiOn ? 'model-tag green' : 'model-tag dim';
+    document.getElementById('cpRowGemini').className = geminiOn ? 'model-row active-model' : 'model-row';
+    const mode = d.mode || 'manual';
+    document.getElementById('cpModeManual').className = mode === 'manual' ? 'mode-pill active' : 'mode-pill';
+    document.getElementById('cpModeAuto').className = mode === 'auto' ? 'mode-pill active' : 'mode-pill';
+    const n = d.pending_actions || 0;
+    document.getElementById('cpPendingList').textContent = n > 0 ? `${n} acțiune(i) în așteptare` : 'Nicio acțiune în așteptare';
+    document.getElementById('sbPending').textContent = `${n} pending`;
+  } catch(e) {}
+}
+
+async function cpGenerateCode() {
+  try {
+    const d = await fetch('http://localhost:9999/generate_code').then(r => r.json());
+    document.getElementById('cpCode').textContent = d.code || '——————';
+    const s = document.getElementById('cpPairStatus');
+    s.textContent = 'Cod generat — valabil 5 min'; s.style.color = 'var(--green)';
+  } catch(e) {
+    const s = document.getElementById('cpPairStatus');
+    s.textContent = 'Server offline'; s.style.color = 'var(--red)';
+  }
+}
+
+async function cpCheckConn() {
+  try {
+    const d = await LeaRouter.status();
+    const s = document.getElementById('cpPairStatus');
+    s.textContent = d.paired ? '✓ Conectat' : '◌ Neperecat — generează un cod nou';
+    s.style.color = d.paired ? 'var(--green)' : 'var(--amber)';
+  } catch(e) {
+    const s = document.getElementById('cpPairStatus');
+    s.textContent = '✗ Server offline'; s.style.color = 'var(--red)';
+  }
+}
+
+async function setCPMode(mode) {
+  try {
+    await fetch('http://localhost:9999/set_mode', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mode})
+    });
+    document.getElementById('cpModeManual').className = mode === 'manual' ? 'mode-pill active' : 'mode-pill';
+    document.getElementById('cpModeAuto').className = mode === 'auto' ? 'mode-pill active' : 'mode-pill';
+    showToast(`Mod: ${mode.toUpperCase()}`, 'success', 3000);
+  } catch(e) {
+    showToast('Server offline — mod nemodificat', 'error');
   }
 }
 
@@ -783,6 +1045,7 @@ function setAskStatus(status) {
     : (status === 'no_api_key' || status === 'online' || status === 'server_offline')
       ? 'var(--amber)'
       : 'var(--text-dim)';
+  updateAIBadge(status);
 }
 
 function showSourceBadge(source) {
@@ -838,6 +1101,7 @@ async function sendAskLea() {
   const typing = document.getElementById('typingIndicator');
 
   btn.disabled = true;
+  btn.textContent = 'Thinking...';
   responseEl.style.display = 'none';
   typing.classList.add('active');
 
@@ -870,6 +1134,7 @@ async function sendAskLea() {
       LeaCache.saveCache(question, d.answer);
       addLog(`[ASK LEA] [${(d.source||'?').toUpperCase()}] ${question.substring(0,55)}`, 'info');
       setAskStatus(d.source === 'gemini' ? 'gemini_ready' : 'ready');
+      if (d.source === 'gemini') showToast('Răspuns Gemini primit', 'success', 3000);
       saveHistory(question);
       renderHistory();
     } else {
@@ -885,6 +1150,7 @@ async function sendAskLea() {
     responseEl.textContent = 'Eroare: ' + e.message;
     setAskStatus('server_offline');
   }
+  btn.textContent = 'Trimite';
   btn.disabled = false;
 }
 
