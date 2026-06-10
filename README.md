@@ -1,98 +1,54 @@
-# LEA — Local Execution Agent
-**VV Hybrid Universe · Cosmin Toma, CEO**
+# LEA
 
-> Primul AI care lucrează **direct** pe laptopul tău. 100% local. Zero cloud. Zero copy-paste.
+LEA is a local-first digital companion built inside the VV Hybrid Universe.
 
----
+## What It Is
 
-## Ce este LEA?
+LEA is designed as a companion that can live close to the user instead of depending entirely on remote systems.
 
-LEA elimină "postașul" — nu mai copiezi între AI și calculator. Claude trimite comanda, LEA o execută direct pe sistemul tău.
+This repository contains the dual structure of LEA:
 
-```
-Cosmin → Claude → LEA Server → Sistem local
-              ↑_____________________↓
-```
+- local execution and local services
+- online and browser-facing surfaces
+- shared modules used across both modes
 
----
+## Why It Exists
 
-## Quick Start — 3 pași
+Most assistants know the internet better than they know the person using them.
 
-```batch
-1. Dublu-click: local\launchers\LEA_START.bat
-2. Browser:     http://localhost:9999/
-3. Execute:     paste format LEA → click Execute
-```
+LEA is built around a different direction:
 
----
+- local-first memory
+- direct execution close to the device
+- privacy and identity as system design choices
 
-## Structură
+## Repository Structure
 
-```
-vv-lea/
-├── online/          → Versiune web (standalone, PWA-ready)
-│   ├── lea-router.js  → Detecție local vs online, unified API
-│   └── manifest.json  → PWA manifest
-│
-├── local/           → Backend Python (rulează pe laptop)
-│   ├── core/
-│   │   ├── servers/pairing_server.py  → Server principal (port 9999)
-│   │   └── ai/lea_llm.py             → TinyLlama integration
-│   └── launchers/   → .bat scripts pentru Windows
-│
-├── shared/          → Module comune (local + online)
-│   └── modules/
-│       ├── shelves.js  → Knowledge base local (localStorage)
-│       ├── voice.js    → Web Speech API (mic + TTS)
-│       └── cache.js    → Cache răspunsuri (offline-ready)
-│
-└── docs/            → Documentație
-    ├── ARCHITECTURE.md
-    ├── SETUP.md
-    └── DEMO.md
-```
+- `local/`  
+  Backend and launcher layer for local execution.
 
----
+- `online/`  
+  Web-facing and browser-facing LEA surfaces.
 
-## Format comandă LEA
+- `shared/`  
+  Shared modules used across local and online modes.
 
-```
-### LEA_EXECUTE ###
-COMENZI = [
-    {'type': 'CREATE_FILE', 'path': 'C:\\LEA_CORE\\data\\test.txt', 'content': 'Hello LEA!'},
-    {'type': 'READ_FILE', 'path': 'C:\\LEA_CORE\\data\\test.txt'},
-    {'type': 'LIST_DIR', 'path': 'C:\\LEA_CORE\\data'}
-]
-```
+- `docs/`  
+  Setup, architecture and demo documentation.
 
----
+## Status
 
-## Ask Lea (TinyLlama local)
+Active core product repository.
 
-```javascript
-// Browser
-LeaRouter.detect().then(() => LeaRouter.ask('Ce este VV Hybrid Universe?'));
+LEA is one of the main visible products of the VV Hybrid Universe.
 
-// Sau direct la server
-POST http://localhost:9999/ask
-{ "question": "Ce faci LEA?" }
-```
+## Part Of
 
----
+LEA is part of the `VV Hybrid Universe`.
 
-## Hardware necesar
+Related repositories:
 
-| Componenta | Minim | Testat pe |
-|-----------|-------|-----------|
-| OS | Windows 10 | Windows 10 Pro |
-| RAM | 2GB | 4GB |
-| Storage | 1GB | SSD |
-| Python | 3.8+ | 3.12.3 |
+- [vv-technologies](https://github.com/vv-technologies/vv-technologies)
+- [vv-nexus](https://github.com/vv-technologies/vv-nexus)
+- [vv-pulse](https://github.com/vv-technologies/vv-pulse)
 
-**RAM usage:** ~38MB server + ~480MB TinyLlama = ~520MB total
-
----
-
-## Licență
-
-VV Hybrid Universe © 2026 · Cosmin Toma
